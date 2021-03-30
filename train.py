@@ -15,13 +15,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--alg", "-a", default="VAT", type=str, help="ssl algorithm : [supervised, PI, MT, VAT, PL, ICT]")
 parser.add_argument("--em", default=0, type=float, help="coefficient of entropy minimization. If you try VAT + EM, set 0.06")
 parser.add_argument("--validation", default=25000, type=int, help="validate at this interval (default 25000)")
-parser.add_argument("--dataset", "-d", default="svhn", type=str, help="dataset name : [svhn, cifar10]")
+parser.add_argument("--dataset", "-d", default="cifar10", type=str, help="dataset name : [svhn, cifar10]")
 parser.add_argument("--root", "-r", default="data", type=str, help="dataset dir")
 parser.add_argument("--output", "-o", default="./exp_res", type=str, help="output dir")
+parser.add_argument("--gpudevice", "-gd", default="0", type=str, help="gpu device id")
 args = parser.parse_args()
 
 if torch.cuda.is_available():
-    device = "cuda"
+    device = "cuda:"+args.gpudevice
     torch.backends.cudnn.benchmark = True
 else:
     device = "cpu"

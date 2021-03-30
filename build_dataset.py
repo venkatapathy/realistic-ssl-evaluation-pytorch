@@ -3,8 +3,8 @@ import argparse, os
 import numpy as np
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--seed", "-s", default=1, type=int, help="random seed")
-parser.add_argument("--dataset", "-d", default="svhn", type=str, help="dataset name : [svhn, cifar10]")
+parser.add_argument("--seed", "-s", default=42, type=int, help="random seed")
+parser.add_argument("--dataset", "-d", default="cifar10", type=str, help="dataset name : [svhn, cifar10]")
 parser.add_argument("--nlabels", "-n", default=1000, type=int, help="the number of labeled data")
 args = parser.parse_args()
 
@@ -19,7 +19,7 @@ COUNTS = {
     },
 }
 
-_DATA_DIR = "./data"
+_DATA_DIR = "data"
 
 def split_l_u(train_set, n_labels):
     # NOTE: this function assume that train_set is shuffled.
@@ -124,7 +124,8 @@ train_set = {"images": train_images, "labels": train_labels}
 
 # split training set into labeled data and unlabeled data
 l_train_set, u_train_set = split_l_u(train_set, args.nlabels)
-
+print("labeled data set shape: ", l_train_set['images'].shape)
+print("unlabeled data set shape: ", u_train_set['images'].shape)
 if not os.path.exists(os.path.join(_DATA_DIR, args.dataset)):
     os.mkdir(os.path.join(_DATA_DIR, args.dataset))
 
