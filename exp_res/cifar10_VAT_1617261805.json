@@ -1,0 +1,1 @@
+{"dataset": "cifar10", "number_of_data": {"labeled": 4000, "unlabeled": 41000, "validation": 5000, "test": 10000}, "setting": "random", "algorithm": "VAT", "h_parameters": {"xi": 1e-06, "eps": {"cifar10": 6, "svhn": 1}, "consis_coef": 0.3, "lr": 0.003}, "entropy_maximization": 0, "test_acc": 0.9225999712944031}

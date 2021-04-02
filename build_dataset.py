@@ -3,9 +3,11 @@ import argparse, os
 import numpy as np
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--seed", "-s", default=42, type=int, help="random seed")
+parser.add_argument("--seed", "-se", default=42, type=int, help="random seed")
 parser.add_argument("--dataset", "-d", default="cifar10", type=str, help="dataset name : [svhn, cifar10]")
 parser.add_argument("--nlabels", "-n", default=1000, type=int, help="the number of labeled data")
+parser.add_argument("--setting", "-s", default="uniform", type=str, help="setting of the labeled seed data")
+
 args = parser.parse_args()
 
 COUNTS = {
@@ -21,26 +23,40 @@ COUNTS = {
 
 _DATA_DIR = "data"
 
-def split_l_u(train_set, n_labels):
+def split_l_u(train_set, n_labels, setting):
     # NOTE: this function assume that train_set is shuffled.
     images = train_set["images"]
     labels = train_set["labels"]
-    classes = np.unique(labels)
-    n_labels_per_cls = n_labels // len(classes)
     l_images = []
     l_labels = []
     u_images = []
     u_labels = []
-    for c in classes:
-        cls_mask = (labels == c)
-        c_images = images[cls_mask]
-        c_labels = labels[cls_mask]
-        l_images += [c_images[:n_labels_per_cls]]
-        l_labels += [c_labels[:n_labels_per_cls]]
-        u_images += [c_images[n_labels_per_cls:]]
-        u_labels += [np.zeros_like(c_labels[n_labels_per_cls:]) - 1] # dammy label
-    l_train_set = {"images": np.concatenate(l_images, 0), "labels": np.concatenate(l_labels, 0)}
-    u_train_set = {"images": np.concatenate(u_images, 0), "labels": np.concatenate(u_labels, 0)}
+    if(setting == "uniform"):
+        classes = np.unique(labels)
+        n_labels_per_cls = n_labels // len(classes)
+        for c in classes:
+            cls_mask = (labels == c)
+            c_images = images[cls_mask]
+            c_labels = labels[cls_mask]
+            l_images += [c_images[:n_labels_per_cls]]
+            l_labels += [c_labels[:n_labels_per_cls]]
+            u_images += [c_images[n_labels_per_cls:]]
+            u_labels += [np.zeros_like(c_labels[n_labels_per_cls:]) - 1] # dammy label.
+            l_train_set = {"images": np.concatenate(l_images, 0), "labels": np.concatenate(l_labels, 0)}
+            u_train_set = {"images": np.concatenate(u_images, 0), "labels": np.concatenate(u_labels, 0)}
+        
+    elif(setting == "random"):
+        np.random.seed(42)
+        full_idx = list(range(len(images)))
+        train_idx = list(np.random.choice(np.array(full_idx), size=n_labels, replace=False))
+        lake_idx = list(set(full_idx)-set(train_idx))
+        l_images = images[train_idx]
+        l_labels = labels[train_idx]
+        u_images = images[lake_idx]
+        u_labels = labels[lake_idx]
+        l_train_set = {"images":l_images, "labels":l_labels}
+        u_train_set = {"images":u_images, "labels":u_labels}
+    
     return l_train_set, u_train_set
 
 def _load_svhn():
@@ -100,7 +116,7 @@ elif args.dataset == "cifar10":
     mean, zca_decomp = get_zca_normalization_param(train_set["images"])
     train_set["images"] = zca_normalization(train_set["images"], mean, zca_decomp)
     test_set["images"] = zca_normalization(test_set["images"], mean, zca_decomp)
-    # N x H x W x C -> N x C x H x W
+    # # N x H x W x C -> N x C x H x W
     train_set["images"] = np.transpose(train_set["images"], (0,3,1,2))
     test_set["images"] = np.transpose(test_set["images"], (0,3,1,2))
 
@@ -123,15 +139,16 @@ validation_set = {"images": validation_images, "labels": validation_labels}
 train_set = {"images": train_images, "labels": train_labels}
 
 # split training set into labeled data and unlabeled data
-l_train_set, u_train_set = split_l_u(train_set, args.nlabels)
+l_train_set, u_train_set = split_l_u(train_set, args.nlabels, args.setting)
+print("Splitting labeled data as per setting: ", args.setting)
 print("labeled data set shape: ", l_train_set['images'].shape)
 print("unlabeled data set shape: ", u_train_set['images'].shape)
 if not os.path.exists(os.path.join(_DATA_DIR, args.dataset)):
     os.mkdir(os.path.join(_DATA_DIR, args.dataset))
 
-np.save(os.path.join(_DATA_DIR, args.dataset, "l_train"), l_train_set)
-np.save(os.path.join(_DATA_DIR, args.dataset, "u_train"), u_train_set)
-np.save(os.path.join(_DATA_DIR, args.dataset, "val"), validation_set)
+np.save(os.path.join(_DATA_DIR, args.dataset, "l_train_"+args.setting), l_train_set)
+np.save(os.path.join(_DATA_DIR, args.dataset, "u_train_"+args.setting), u_train_set)
+np.save(os.path.join(_DATA_DIR, args.dataset, "val_"+args.setting), validation_set)
 np.save(os.path.join(_DATA_DIR, args.dataset, "test"), test_set)
 if extra_set is not None:
     np.save(os.path.join(_DATA_DIR, args.dataset, "extra"), extra_set)

@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 import argparse, math, time, json, os
-
+from lib.datasets.custom_dataset import load_dataset_custom
 from lib import wrn, transform
 from config import config
 
@@ -19,6 +19,7 @@ parser.add_argument("--dataset", "-d", default="cifar10", type=str, help="datase
 parser.add_argument("--root", "-r", default="data", type=str, help="dataset dir")
 parser.add_argument("--output", "-o", default="./exp_res", type=str, help="output dir")
 parser.add_argument("--gpudevice", "-gd", default="0", type=str, help="gpu device id")
+parser.add_argument("--setting", "-s", default="uniform", type=str, help="setting of loading the dataset")
 args = parser.parse_args()
 
 if torch.cuda.is_available():
@@ -37,10 +38,11 @@ exp_name += str(args.dataset) + "_"
 dataset_cfg = config[args.dataset]
 transform_fn = transform.transform(*dataset_cfg["transform"]) # transform function (flip, crop, noise)
 
-l_train_dataset = dataset_cfg["dataset"](args.root, "l_train")
-u_train_dataset = dataset_cfg["dataset"](args.root, "u_train")
-val_dataset = dataset_cfg["dataset"](args.root, "val")
+l_train_dataset = dataset_cfg["dataset"](args.root, "l_train_"+args.setting)
+u_train_dataset = dataset_cfg["dataset"](args.root, "u_train_"+args.setting)
+val_dataset = dataset_cfg["dataset"](args.root, "val_"+args.setting)
 test_dataset = dataset_cfg["dataset"](args.root, "test")
+# l_train_dataset, val_dataset, test_dataset, u_train_dataset, num_cls = load_dataset_custom(args.root, args.dataset, args.feature, dataset_cfg["split_cfg"], False, True, False)
 
 print("labeled data : {}, unlabeled data : {}, training data : {}".format(
     len(l_train_dataset), len(u_train_dataset), len(l_train_dataset)+len(u_train_dataset)))
@@ -49,6 +51,7 @@ condition["number_of_data"] = {
     "labeled":len(l_train_dataset), "unlabeled":len(u_train_dataset),
     "validation":len(val_dataset), "test":len(test_dataset)
 }
+condition["setting"] = args.setting
 
 class RandomSampler(torch.utils.data.Sampler):
     """ sampling without replacement """

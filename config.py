@@ -18,6 +18,7 @@ cifar10_config = {
     "transform" : [True, True, True],
     "dataset" : cifar10.CIFAR10,
     "num_classes" : 10,
+    "split_cfg" : {"train_size":1000, "val_size":5000},
 }
 ### algorithm ###
 vat_config = {
