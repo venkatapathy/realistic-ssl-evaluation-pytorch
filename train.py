@@ -54,6 +54,7 @@ condition["number_of_data"] = {
     "validation":len(val_dataset), "test":len(test_dataset)
 }
 condition["setting"] = args.setting
+exp_name += "labeled" + str(len(l_train_dataset)) + "_" + str(args.setting) + "_"
 
 class RandomSampler(torch.utils.data.Sampler):
     """ sampling without replacement """
@@ -109,10 +110,10 @@ trainable_paramters = sum([p.data.nelement() for p in model.parameters()])
 print("trainable parameters : {}".format(trainable_paramters))
 
 #Create exp dir to store results and logs
-exp_name += str(args.run) # unique ID
+exp_name += "run"+str(args.run) # unique ID
 exp_dir = os.path.join(args.output, exp_name)
 if not os.path.exists(exp_dir):
-    os.mkdir(exp_dir)
+    os.makedirs(exp_dir)
 
 if args.alg == "VAT": # virtual adversarial training
     from lib.algs.vat import VAT
