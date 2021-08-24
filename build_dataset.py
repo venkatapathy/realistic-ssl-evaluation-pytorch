@@ -1,6 +1,11 @@
 from torchvision import datasets
 import argparse, os
 import numpy as np
+from submodlib.functions.facilityLocation import FacilityLocationFunction
+from submodlib.helper import create_kernel
+from submodlib.functions.disparityMin import DisparityMinFunction
+from submodlib.functions.logDeterminant import LogDeterminantFunction
+from submodlib.functions.graphCut import GraphCutFunction
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", "-se", default=42, type=int, help="random seed")
@@ -22,6 +27,7 @@ COUNTS = {
 }
 
 _DATA_DIR = "data"
+
 
 def split_l_u(train_set, n_labels, setting):
     # NOTE: this function assume that train_set is shuffled.
@@ -46,7 +52,7 @@ def split_l_u(train_set, n_labels, setting):
             u_train_set = {"images": np.concatenate(u_images, 0), "labels": np.concatenate(u_labels, 0)}
         
     elif(setting == "random"):
-        np.random.seed(42)
+        np.random.seed(0)
         full_idx = list(range(len(images)))
         train_idx = list(np.random.choice(np.array(full_idx), size=n_labels, replace=False))
         lake_idx = list(set(full_idx)-set(train_idx))
@@ -56,8 +62,89 @@ def split_l_u(train_set, n_labels, setting):
         u_labels = labels[lake_idx]
         l_train_set = {"images":l_images, "labels":l_labels}
         u_train_set = {"images":u_images, "labels":u_labels}
+        
+    #using seed set obtained by facility location
+    elif(setting == "facilitylocation"):
+        print("entered into facilityLocation")
+        data_size  = len(images)
+        dataArray = np.array([i.reshape(3072,) for i in images])
+        print("number of samples: ",data_size)
+        K_dense = create_kernel(dataArray, mode='dense',metric='euclidean')
+        obj1 = FacilityLocationFunction(n=data_size, mode="dense", sijs = K_dense, separate_rep=False)
+        greedyList = obj1.maximize(budget=n_labels,optimizer='NaiveGreedy', stopIfZeroGain=False, stopIfNegativeGain=False, verbose=False)
+        full_idx   = list(range(len(images)))
+        train_idx  = [i[0] for i in greedyList]
+        lake_idx   = list(set(full_idx)-set(train_idx))
+        l_images = images[train_idx]
+        l_labels = labels[train_idx]
+        u_images = images[lake_idx]
+        u_labels = labels[lake_idx]
+        l_train_set = {"images":l_images, "labels":l_labels}
+        u_train_set = {"images":u_images, "labels":u_labels}
+        
+    #using subset obtained from disparity min
+    elif(setting == "disparitymin"):
+        print("entered into disparitymin")
+        data_size  = len(images)
+        dataArray = np.array([i.reshape(3072,) for i in images])
+        K_dense = create_kernel(dataArray, mode='dense',metric='euclidean')
+        print(data_size)
+        obj1 = DisparityMinFunction(n=data_size, mode="dense", sijs=K_dense)
+        print("obj instantiated")
+        greedyList = obj1.maximize(budget=n_labels,optimizer='NaiveGreedy', stopIfZeroGain=False, stopIfNegativeGain=False, verbose=False)
+        print("returned optimized list")
+        full_idx   = list(range(len(images)))
+        train_idx  = [i[0] for i in greedyList]
+        lake_idx   = list(set(full_idx)-set(train_idx))
+        l_images = images[train_idx]
+        l_labels = labels[train_idx]
+        u_images = images[lake_idx]
+        u_labels = labels[lake_idx]
+        l_train_set = {"images":l_images, "labels":l_labels}
+        u_train_set = {"images":u_images, "labels":u_labels}
+    #using subset obtained from disparity min
+    elif(setting == "graphcut"):
+        print("entered into graphcut")
+        data_size  = len(images)
+        dataArray = np.array([i.reshape(3072,) for i in images])
+        K_dense = create_kernel(dataArray, mode='dense',metric='euclidean')
+        print(data_size)
+        obj1 = GraphCutFunction(n=data_size, mode="dense", mgsijs=K_dense, lambdaVal=0.4)
+        print("obj instantiated")
+        greedyList = obj1.maximize(budget=n_labels,optimizer='NaiveGreedy', stopIfZeroGain=False, stopIfNegativeGain=False, verbose=False)
+        print("returned optimized list")
+        full_idx   = list(range(len(images)))
+        train_idx  = [i[0] for i in greedyList]
+        lake_idx   = list(set(full_idx)-set(train_idx))
+        l_images = images[train_idx]
+        l_labels = labels[train_idx]
+        u_images = images[lake_idx]
+        u_labels = labels[lake_idx]
+        l_train_set = {"images":l_images, "labels":l_labels}
+        u_train_set = {"images":u_images, "labels":u_labels}
+    
+    #using seed set obtained by log determinant
+    elif(setting == "logdet"):
+        print("entered into logDeterminant")
+        data_size  = len(images)
+        dataArray = np.array([i.reshape(3072,) for i in images])
+        print("number of samples: ",data_size)
+        print("size of ndarray(num_samples x num_features):",dataArray.shape)
+        K_dense = create_kernel(dataArray, mode='dense',metric='euclidean')
+        obj1 = LogDeterminantFunction(n=data_size, mode="dense", sijs=K_dense, lambdaVal=1)
+        greedyList = obj1.maximize(budget=n_labels,optimizer='NaiveGreedy', stopIfZeroGain=False, stopIfNegativeGain=False, verbose=False)
+        full_idx   = list(range(len(images)))
+        train_idx  = [i[0] for i in greedyList]
+        lake_idx   = list(set(full_idx)-set(train_idx))
+        l_images = images[train_idx]
+        l_labels = labels[train_idx]
+        u_images = images[lake_idx]
+        u_labels = labels[lake_idx]
+        l_train_set = {"images":l_images, "labels":l_labels}
+        u_train_set = {"images":u_images, "labels":u_labels}
     
     return l_train_set, u_train_set
+
 
 def _load_svhn():
     splits = {}
@@ -79,6 +166,7 @@ def _load_cifar10():
         splits["train" if train else "test"] = data
     return splits.values()
 
+
 def gcn(images, multiplier=55, eps=1e-10):
     # global contrast normalization
     images = images.astype(np.float)
@@ -86,6 +174,7 @@ def gcn(images, multiplier=55, eps=1e-10):
     per_image_norm = np.sqrt(np.square(images).sum((1,2,3), keepdims=True))
     per_image_norm[per_image_norm < eps] = 1
     return multiplier * images / per_image_norm
+
 
 def get_zca_normalization_param(images, scale=0.1, eps=1e-10):
     n_data, height, width, channels = images.shape
@@ -95,6 +184,7 @@ def get_zca_normalization_param(images, scale=0.1, eps=1e-10):
     zca_decomp = np.dot(U, np.dot(np.diag(1/np.sqrt(S + eps)), U.T))
     mean = images.mean(axis=0)
     return mean, zca_decomp
+
 
 def zca_normalization(images, mean, decomp):
     n_data, height, width, channels = images.shape
