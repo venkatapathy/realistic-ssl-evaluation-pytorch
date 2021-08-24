@@ -35,7 +35,7 @@ exp_name = ""
 
 print("dataset : {}".format(args.dataset))
 condition["dataset"] = args.dataset
-exp_name += str(args.dataset) + "_" + str(args.setting)
+exp_name += str(args.dataset) + "_"
 
 dataset_cfg = config[args.dataset]
 transform_fn = transform.transform(*dataset_cfg["transform"]) # transform function (flip, crop, noise)
@@ -202,7 +202,7 @@ for l_data, u_data in zip(l_loader, u_loader):
     if (iteration % args.validation) == 0 or iteration == shared_cfg["iteration"]:
         with torch.no_grad():
             model.eval()
-            #torch.save(model, "./model_"+args.setting)
+            #torch.save(model, "/media/hdd3/pavan/ssl/realistic-ssl-eval/model_"+args.setting)
             print()
             print("### validation ###")
             
@@ -224,7 +224,7 @@ for l_data, u_data in zip(l_loader, u_loader):
                     s = time.time()
             acc = sum_acc/float(len(val_dataset))
             print()
-            print("validation accuracy : {}".format(acc))
+            print("varidation accuracy : {}".format(acc))
             validation_accuracies.append(acc)
             iterations_list.append(iteration)
             plt.plot(torch.tensor(iterations_list).cpu(), torch.tensor(validation_accuracies).cpu())

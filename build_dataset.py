@@ -242,4 +242,3 @@ np.save(os.path.join(_DATA_DIR, args.dataset, "val_"+args.setting), validation_s
 np.save(os.path.join(_DATA_DIR, args.dataset, "test"), test_set)
 if extra_set is not None:
     np.save(os.path.join(_DATA_DIR, args.dataset, "extra"), extra_set)
-
