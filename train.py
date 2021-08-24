@@ -21,6 +21,7 @@ parser.add_argument("--root", "-r", default="data", type=str, help="dataset dir"
 parser.add_argument("--output", "-o", default="./exp_res", type=str, help="output dir")
 parser.add_argument("--gpudevice", "-gd", default="0", type=str, help="gpu device id")
 parser.add_argument("--setting", "-s", default="uniform", type=str, help="setting of loading the dataset")
+parser.add_argument("--run", default=1, type=int, help="Run number for unique id")
 args = parser.parse_args()
 
 if torch.cuda.is_available():
@@ -106,6 +107,12 @@ optimizer = optim.Adam(model.parameters(), lr=alg_cfg["lr"])
 
 trainable_paramters = sum([p.data.nelement() for p in model.parameters()])
 print("trainable parameters : {}".format(trainable_paramters))
+
+#Create exp dir to store results and logs
+exp_name += str(args.run) # unique ID
+exp_dir = os.path.join(args.output, exp_name)
+if not os.path.exists(exp_dir):
+    os.mkdir(exp_dir)
 
 if args.alg == "VAT": # virtual adversarial training
     from lib.algs.vat import VAT
@@ -223,9 +230,10 @@ for l_data, u_data in zip(l_loader, u_loader):
             plt.plot(torch.tensor(iterations_list).cpu(), torch.tensor(validation_accuracies).cpu())
             plt.xlabel('iteration')
             plt.ylabel('validation accuracy')
-            plt.savefig('validation'+args.setting+'.png')
+            plt.savefig(exp_dir + '/validation.png')
             plt.clf()
-            
+            condition["validation_accuracies"] = validation_accuracies
+
             # test
             if maximum_val_acc < acc:
                 print("### test ###")
@@ -252,8 +260,11 @@ for l_data, u_data in zip(l_loader, u_loader):
                 plt.plot(torch.tensor(testing_iters_list).cpu(), torch.tensor(testing_accuracies).cpu())
                 plt.xlabel('iteration')
                 plt.ylabel('testing accuracy')
-                plt.savefig('testing'+args.setting+'.png')
+                plt.savefig(exp_dir + '/testing.png')
                 plt.clf()
+                condition["test_accuracies"] = testing_accuracies
+                with open(os.path.join(exp_dir, exp_name + ".json"), "w") as f:
+                    json.dump(condition, f)
                 # torch.save(model.state_dict(), os.path.join(args.output, "best_model.pth"))
         model.train()
         s = time.time()
@@ -263,9 +274,3 @@ for l_data, u_data in zip(l_loader, u_loader):
 
 print("test acc : {}".format(test_acc))
 condition["test_acc"] = test_acc.item()
-
-exp_name += str(int(time.time())) # unique ID
-if not os.path.exists(args.output):
-    os.mkdir(args.output)
-with open(os.path.join(args.output, exp_name + ".json"), "w") as f:
-    json.dump(condition, f)
