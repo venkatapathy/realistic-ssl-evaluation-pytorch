@@ -59,7 +59,7 @@ def split_l_u(train_set, n_labels, setting):
         l_images = images[train_idx]
         l_labels = labels[train_idx]
         u_images = images[lake_idx]
-        u_labels = labels[lake_idx]
+        u_labels = np.zeros((len(lake_idx),))-1
         l_train_set = {"images":l_images, "labels":l_labels}
         u_train_set = {"images":u_images, "labels":u_labels}
         
@@ -78,7 +78,7 @@ def split_l_u(train_set, n_labels, setting):
         l_images = images[train_idx]
         l_labels = labels[train_idx]
         u_images = images[lake_idx]
-        u_labels = labels[lake_idx]
+        u_labels = np.zeros((len(lake_idx),))-1
         l_train_set = {"images":l_images, "labels":l_labels}
         u_train_set = {"images":u_images, "labels":u_labels}
         
@@ -99,7 +99,7 @@ def split_l_u(train_set, n_labels, setting):
         l_images = images[train_idx]
         l_labels = labels[train_idx]
         u_images = images[lake_idx]
-        u_labels = labels[lake_idx]
+        u_labels = np.zeros((len(lake_idx),))-1
         l_train_set = {"images":l_images, "labels":l_labels}
         u_train_set = {"images":u_images, "labels":u_labels}
     #using subset obtained from disparity min
@@ -119,7 +119,7 @@ def split_l_u(train_set, n_labels, setting):
         l_images = images[train_idx]
         l_labels = labels[train_idx]
         u_images = images[lake_idx]
-        u_labels = labels[lake_idx]
+        u_labels = np.zeros((len(lake_idx),))-1
         l_train_set = {"images":l_images, "labels":l_labels}
         u_train_set = {"images":u_images, "labels":u_labels}
     
@@ -139,7 +139,7 @@ def split_l_u(train_set, n_labels, setting):
         l_images = images[train_idx]
         l_labels = labels[train_idx]
         u_images = images[lake_idx]
-        u_labels = labels[lake_idx]
+        u_labels = np.zeros((len(lake_idx),))-1
         l_train_set = {"images":l_images, "labels":l_labels}
         u_train_set = {"images":u_images, "labels":u_labels}
     
