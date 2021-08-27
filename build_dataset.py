@@ -1,11 +1,17 @@
 from torchvision import datasets
 import argparse, os
 import numpy as np
+import torch
+import torchvision.models as models
+
 from submodlib.functions.facilityLocation import FacilityLocationFunction
 from submodlib.helper import create_kernel
 from submodlib.functions.disparityMin import DisparityMinFunction
 from submodlib.functions.logDeterminant import LogDeterminantFunction
 from submodlib.functions.graphCut import GraphCutFunction
+
+from lib import strategy
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", "-se", default=42, type=int, help="random seed")
@@ -31,6 +37,16 @@ _DATA_DIR = "data"
 
 def split_l_u(train_set, n_labels, setting):
     # NOTE: this function assume that train_set is shuffled.
+
+    wide_resnet50_2 = models.wide_resnet50_2(pretrained=True)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    wide_resnet50_2.to(device)
+    wide_resnet50_2.eval()
+    train_dataset = [(train_set['images'][i],train_set['labels'][i]) for i in range(len(train_set['images']))]
+    #print(train_dataset[0].shape,train_dataset[1].shape)
+    s = strategy.Strategy(labeled_dataset=train_dataset, unlabeled_dataset=np.array([]) ,net=wide_resnet50_2,nclasses=10,args={'batch_size':100, 'device':device})
+    features = s.get_feature_embedding(dataset=train_dataset,unlabeled=False,layer_name="avgpool")
+
     images = train_set["images"]
     labels = train_set["labels"]
     l_images = []
@@ -67,7 +83,7 @@ def split_l_u(train_set, n_labels, setting):
     elif(setting == "facilitylocation"):
         print("entered into facilityLocation")
         data_size  = len(images)
-        dataArray = np.array([i.reshape(3072,) for i in images])
+        dataArray = features.cpu()
         print("number of samples: ",data_size)
         K_dense = create_kernel(dataArray, mode='dense',metric='euclidean')
         obj1 = FacilityLocationFunction(n=data_size, mode="dense", sijs = K_dense, separate_rep=False)
@@ -86,7 +102,7 @@ def split_l_u(train_set, n_labels, setting):
     elif(setting == "disparitymin"):
         print("entered into disparitymin")
         data_size  = len(images)
-        dataArray = np.array([i.reshape(3072,) for i in images])
+        dataArray = features.cpu()
         K_dense = create_kernel(dataArray, mode='dense',metric='euclidean')
         print(data_size)
         obj1 = DisparityMinFunction(n=data_size, mode="dense", sijs=K_dense)
@@ -106,7 +122,7 @@ def split_l_u(train_set, n_labels, setting):
     elif(setting == "graphcut"):
         print("entered into graphcut")
         data_size  = len(images)
-        dataArray = np.array([i.reshape(3072,) for i in images])
+        dataArray = features.cpu()
         K_dense = create_kernel(dataArray, mode='dense',metric='euclidean')
         print(data_size)
         obj1 = GraphCutFunction(n=data_size, mode="dense", mgsijs=K_dense, lambdaVal=0.4)
@@ -127,7 +143,7 @@ def split_l_u(train_set, n_labels, setting):
     elif(setting == "logdet"):
         print("entered into logDeterminant")
         data_size  = len(images)
-        dataArray = np.array([i.reshape(3072,) for i in images])
+        dataArray = features.cpu()
         print("number of samples: ",data_size)
         print("size of ndarray(num_samples x num_features):",dataArray.shape)
         K_dense = create_kernel(dataArray, mode='dense',metric='euclidean')
