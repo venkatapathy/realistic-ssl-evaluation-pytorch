@@ -310,6 +310,7 @@ class Strategy:
         else:
             for batch_idx, (inputs,_) in enumerate(dataloader):
                 inputs = inputs.to(self.device)
+                inputs = inputs.type(torch.cuda.FloatTensor)
                 batch_features = self.feature_extraction(inputs, layer_name)
                 features.append(batch_features)
         return torch.vstack(features)
