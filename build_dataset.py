@@ -42,10 +42,10 @@ def split_l_u(train_set, n_labels, setting):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     wide_resnet50_2.to(device)
     wide_resnet50_2.eval()
-    train_dataset = [(train_set['images'][i],train_set['labels'][i]) for i in range(len(train_set['images']))]
+    train_dataset = [train_set['images'][i] for i in range(len(train_set['images']))]
     #print(train_dataset[0].shape,train_dataset[1].shape)
     s = strategy.Strategy(labeled_dataset=train_dataset, unlabeled_dataset=np.array([]) ,net=wide_resnet50_2,nclasses=10,args={'batch_size':100, 'device':device})
-    features = s.get_feature_embedding(dataset=train_dataset,unlabeled=False,layer_name="avgpool")
+    features = s.get_feature_embedding(dataset=train_dataset,unlabeled=True,layer_name="avgpool")
 
     images = train_set["images"]
     labels = train_set["labels"]
