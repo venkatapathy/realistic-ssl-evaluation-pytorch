@@ -36,7 +36,7 @@ COUNTS = {
 
 _DATA_DIR = "data"
 
-file_name = args.output+"/"+args.setting+".h5"
+file_name = args.output+"/logs_"+args.setting+".h5"
 h5file = h5py.File(file_name,"w")
 def split_l_u(train_set, n_labels, setting):
     # NOTE: this function assume that train_set is shuffled.
