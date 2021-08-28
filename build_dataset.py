@@ -11,6 +11,7 @@ from submodlib.functions.logDeterminant import LogDeterminantFunction
 from submodlib.functions.graphCut import GraphCutFunction
 
 from lib import strategy
+import h5py
 
 
 parser = argparse.ArgumentParser()
@@ -18,6 +19,7 @@ parser.add_argument("--seed", "-se", default=42, type=int, help="random seed")
 parser.add_argument("--dataset", "-d", default="cifar10", type=str, help="dataset name : [svhn, cifar10]")
 parser.add_argument("--nlabels", "-n", default=1000, type=int, help="the number of labeled data")
 parser.add_argument("--setting", "-s", default="uniform", type=str, help="setting of the labeled seed data")
+parser.add_argument("--output", "-s", default="data", type=str, help="directory where indices and features of datasets are found")
 
 args = parser.parse_args()
 
@@ -34,7 +36,8 @@ COUNTS = {
 
 _DATA_DIR = "data"
 
-
+file_name = args.output+"/"+args.setting+".h5"
+h5file = h5py.File(file_name,"w")
 def split_l_u(train_set, n_labels, setting):
     # NOTE: this function assume that train_set is shuffled.
 
@@ -53,6 +56,10 @@ def split_l_u(train_set, n_labels, setting):
     l_labels = []
     u_images = []
     u_labels = []
+    l_features = []
+    u_features = []
+    l_indices = []
+    u_indices = []
     if(setting == "uniform"):
         classes = np.unique(labels)
         n_labels_per_cls = n_labels // len(classes)
@@ -60,13 +67,19 @@ def split_l_u(train_set, n_labels, setting):
             cls_mask = (labels == c)
             c_images = images[cls_mask]
             c_labels = labels[cls_mask]
+            c_indices = [i for i in range(cls_mask.shape[0]) if cls_mask]
+            c_features = features[cls_mask]
             l_images += [c_images[:n_labels_per_cls]]
             l_labels += [c_labels[:n_labels_per_cls]]
+            l_indices += [c_indices[:n_labels_per_cls]]
+            l_features += [c_features[:n_labels_per_cls]]
             u_images += [c_images[n_labels_per_cls:]]
             u_labels += [np.zeros_like(c_labels[n_labels_per_cls:]) - 1] # dammy label.
+            u_indices += [c_indices[n_labels_per_cls:]]
+            u_features += [c_features[n_labels_per_cls:]]
             l_train_set = {"images": np.concatenate(l_images, 0), "labels": np.concatenate(l_labels, 0)}
             u_train_set = {"images": np.concatenate(u_images, 0), "labels": np.concatenate(u_labels, 0)}
-        
+          
     elif(setting == "random"):
         np.random.seed(0)
         full_idx = list(range(len(images)))
@@ -74,8 +87,12 @@ def split_l_u(train_set, n_labels, setting):
         lake_idx = list(set(full_idx)-set(train_idx))
         l_images = images[train_idx]
         l_labels = labels[train_idx]
+        l_indices = np.array(train_idx)
+        l_features = features[train_idx]
         u_images = images[lake_idx]
         u_labels = np.zeros((len(lake_idx),))-1
+        u_indices = np.array(lake_idx)
+        u_features = features[lake_idx]
         l_train_set = {"images":l_images, "labels":l_labels}
         u_train_set = {"images":u_images, "labels":u_labels}
         
@@ -93,8 +110,12 @@ def split_l_u(train_set, n_labels, setting):
         lake_idx   = list(set(full_idx)-set(train_idx))
         l_images = images[train_idx]
         l_labels = labels[train_idx]
+        l_indices = np.array(train_idx)
+        l_features = features[train_idx]
         u_images = images[lake_idx]
         u_labels = np.zeros((len(lake_idx),))-1
+        u_indices = np.array(lake_idx)
+        u_features = features[lake_idx]
         l_train_set = {"images":l_images, "labels":l_labels}
         u_train_set = {"images":u_images, "labels":u_labels}
         
@@ -114,8 +135,12 @@ def split_l_u(train_set, n_labels, setting):
         lake_idx   = list(set(full_idx)-set(train_idx))
         l_images = images[train_idx]
         l_labels = labels[train_idx]
+        l_indices = np.array(train_idx)
+        l_features = features[train_idx]
         u_images = images[lake_idx]
         u_labels = np.zeros((len(lake_idx),))-1
+        u_indices = np.array(lake_idx)
+        u_features = features[lake_idx]
         l_train_set = {"images":l_images, "labels":l_labels}
         u_train_set = {"images":u_images, "labels":u_labels}
     #using subset obtained from disparity min
@@ -134,8 +159,12 @@ def split_l_u(train_set, n_labels, setting):
         lake_idx   = list(set(full_idx)-set(train_idx))
         l_images = images[train_idx]
         l_labels = labels[train_idx]
+        l_indices = np.array(train_idx)
+        l_features = features[train_idx]
         u_images = images[lake_idx]
         u_labels = np.zeros((len(lake_idx),))-1
+        u_indices = np.array(lake_idx)
+        u_features = features[lake_idx]
         l_train_set = {"images":l_images, "labels":l_labels}
         u_train_set = {"images":u_images, "labels":u_labels}
     
@@ -154,10 +183,39 @@ def split_l_u(train_set, n_labels, setting):
         lake_idx   = list(set(full_idx)-set(train_idx))
         l_images = images[train_idx]
         l_labels = labels[train_idx]
+        l_indices = np.array(train_idx)
+        l_features = features[train_idx]
         u_images = images[lake_idx]
         u_labels = np.zeros((len(lake_idx),))-1
+        u_indices = np.array(lake_idx)
+        u_features = features[lake_idx]
         l_train_set = {"images":l_images, "labels":l_labels}
         u_train_set = {"images":u_images, "labels":u_labels}
+        
+    labeled_indices_array = h5file.get("labaled_indices")
+    if labeled_indices_array:
+        labeled_indices_array[:] = l_indices
+    else:
+        h5file.create_dataset("labeled_indices", data=l_indices)
+        
+    unlabeled_indices_array = h5file.get("unlabaled_indices")
+    if unlabeled_indices_array:
+        unlabeled_indices_array[:] = u_indices
+    else:
+        h5file.create_dataset("unlabeled_indices", data=u_indices)
+        
+    labeled_features_array = h5file.get("labaled_features")
+    if labeled_features_array:
+        labeled_features_array[:,:] = l_features
+    else:
+        h5file.create_dataset("labeled_features", data=l_features)
+        
+    unlabeled_features_array = h5file.get("unlabaled_features")
+    if unlabeled_features_array:
+        unlabeled_features_array[:,:] = u_features
+    else:
+        h5file.create_dataset("labeled_features", data=u_features)
+    h5file.close()
     
     return l_train_set, u_train_set
 
